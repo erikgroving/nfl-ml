@@ -1,10 +1,15 @@
 import pandas as pd
 import math
 
+counter = 0
+
 class Team:
+	idCounter = 0
 	def __init__(self, name, statsUrl):
 		self.name = name 
 		self.statsUrl = statsUrl
+		self.id = Team.idCounter
+		Team.idCounter += 1
 
 	def setSchedule(self, schedule):
 		self.schedule = schedule
@@ -32,7 +37,7 @@ class Scraper:
 		for _, team in self.teams.items():
 			self.scrapeTeam(team)
 		for game in self.teams['Buccaneers'].schedule:
-			print(game.opponent + ' ' + str(game.pointsFor) + ' ' + str(game.pointsAgainst))
+			print(str(game.opponent) + ' ' + str(game.pointsFor) + ' ' + str(game.pointsAgainst))
 		
 		return self.teams
 
@@ -77,11 +82,11 @@ class Scraper:
 
 		row = 0
 		schedule = []
-		while not pd.isna(self.getPointsFor(row, stats)) or self.isByeWeek(row, stats):
+		while row < 18:
 			if self.isByeWeek(row, stats):
 				row += 1
 				continue
-			opponent = self.getOpponent(row, stats).split(' ')[-1]
+			opponent = self.teams[self.getOpponent(row, stats).split(' ')[-1]].id
 			pointsFor = self.getPointsFor(row, stats)
 			pointsAgainst = self.getPointsAgainst(row, stats)
 			totalYards = self.getTotalYards(row, stats)
