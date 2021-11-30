@@ -25,34 +25,56 @@ from sklearn import tree
 		# self.defTurnovers = defTurnovers
 # n_features --> Parameters * 2 --> 22, but opponent will be onehot vector
 # Output --> Score Differential (T1 - T2)
-def generateDataAndLabels(teams, weeksPerLabel, currentWeek):
+def generateDataAndLabels(teams, curWeek, weeksPerLabel):
 	week = 0 + weeksPerLabel
 	data = []
 	labels = []
-	while week < currentWeek:
-		d, l = generateTrainingDataForWeek(teams, weeksPerLabel, week)
+	while week < curWeek:
+		d, l = generateTrainingDataForWeek(teams, week, weeksPerLabel)
 		data.append(d)
 		labels.append(l)
 		week += 1
-	return data, labels
+	X = np.asarray(data)
+	Y = np.asarray(labels)
+	return X, Y
 
-def generateTrainingDataForWeek(teams, weeksPerLabel, week):
+def generateTrainingDataForWeek(teams, week, weeksPerLabel):
 	data = []
 	labels = []
 	for _,team in teams.items():
 		d, l = generateInputAndLabel(team, week, weeksPerLabel)
 		data.append(d)
 		labels.append(l)
-	return data, labels
+	X = np.asarray(data)
+	Y = np.asarray(labels)
+	return X, Y
 
 def generateInputAndLabel(team, week, weeksPerLabel):
+	features = []
 	for i in range(week - weeksPerLabel, week):
-		teamVec = np.zeros([1, 32])
-		oppVec = np.zeros([1, 32])
-		teamVec[0][team.id] = 1
-		oppVec[0][team.schedule[i].opponent] = 1
+		teamVec = np.zeros([32])
+		oppVec = np.zeros([32])
+		teamVec[team.id] = 1
+		game = team.schedule[i]
 
-	X = np.concatenate((teamVec, oppVec), axis=0)
+		oppVec[game.opponent] = 1
+
+		featureVec = np.empty([10])
+		featureVec[0] = game.pointsFor
+		featureVec[1] = game.pointsAgainst
+		featureVec[2] = game.totalYards
+		featureVec[3] = game.passYards
+		featureVec[4] = game.rushYards
+		featureVec[5] = game.turnovers
+		featureVec[6] = game.defYdsAllowed
+		featureVec[7] = game.defPassYards
+		featureVec[8] = game.defRushYards
+		featureVec[9] = game.defTurnovers
+		
+		feature = np.concatenate((teamVec, oppVec, featureVec), axis=0)
+		features.append(feature)
+
+	X = np.reshape(np.asarray(features), (-1))
 	game = team.schedule[week]
 	Y = game.pointsFor - game.pointsAgainst
 	return X, Y
@@ -87,15 +109,12 @@ else:
 	pkl = open('teams.pickle', 'rb')
 	teams = pickle.load(pkl)
 
-
 weekToBacktest = 11
 weeksToLookback = 5
 
-for _,team in teams.items():
-	print(team.name + ' ' + str(team.id))
-
-X, Y = generateDataAndLabels(teams, weeksToLookback, weekToBacktest)
-print(X)
+X, Y = generateTrainingDataForWeek(teams, 10, 4)
+#X, Y = generateDataAndLabels(teams, weeksToLookback, weekToBacktest)
+print(X.shape)
 print(Y)
 #clf = tree.DecisionTreeClassifier()
 #clf = clf.fit(X, Y)

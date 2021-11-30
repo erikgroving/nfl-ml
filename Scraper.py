@@ -36,8 +36,6 @@ class Scraper:
 	def scrape(self):
 		for _, team in self.teams.items():
 			self.scrapeTeam(team)
-		for game in self.teams['Buccaneers'].schedule:
-			print(str(game.opponent) + ' ' + str(game.pointsFor) + ' ' + str(game.pointsAgainst))
 		
 		return self.teams
 
