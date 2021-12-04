@@ -5,10 +5,12 @@ counter = 0
 
 class Team:
 	idCounter = 0
+	idToTeam = {}
 	def __init__(self, name, statsUrl):
 		self.name = name 
 		self.statsUrl = statsUrl
-		self.id = Team.idCounter
+		self.id = int(Team.idCounter)
+		Team.idToTeam[self.id] = self.name
 		Team.idCounter += 1
 
 	def setSchedule(self, schedule):
@@ -16,9 +18,23 @@ class Team:
 	
 	
 class Game:
-	def __init__(self, week, opponent, pointsFor, pointsAgainst, totalYards, passYards, rushYards, turnovers, defYdsAllowed, defPassYards, defRushYards, defTurnovers):
+	def __init__(self, week, 
+					opponent = None, 
+					opponentName = None, 
+					pointsFor = None, 
+					pointsAgainst = None, 
+					totalYards = None, 
+					passYards = None, 
+					rushYards = None, 
+					turnovers = None, 
+					defYdsAllowed = None, 
+					defPassYards = None, 
+					defRushYards = None, 
+					defTurnovers = None, 
+					awayGame = None):
 		self.week = week
 		self.opponent = opponent
+		self.opponentName = opponentName
 		self.pointsFor = pointsFor
 		self.pointsAgainst = pointsAgainst
 		self.totalYards = totalYards
@@ -29,6 +45,7 @@ class Game:
 		self.defPassYards = defPassYards
 		self.defRushYards = defRushYards
 		self.defTurnovers = defTurnovers
+		self.awayGame = awayGame
 
 
 class Scraper:
@@ -74,16 +91,22 @@ class Scraper:
 
 	def isByeWeek(self, row, stats):
 		return stats.at[row, ('Unnamed: 9_level_0', 'Opp')] == 'Bye Week'
+	
+	def isAwayGame(self, row, stats):
+		return 1 if stats.at[row, ('Unnamed: 8_level_0', 'Unnamed: 8_level_1')] == '@' else 0
 
 	def scrapeTeam(self, team):
 		stats = pd.read_html(team.statsUrl + '2021.htm')[1]
-
 		row = 0
 		schedule = []
 		while row < 18:
+			opponentName = self.getOpponent(row, stats).split(' ')[-1]
 			if self.isByeWeek(row, stats):
+				game = Game(row, opponentName=opponentName)
+				schedule.append(game)
 				row += 1
 				continue
+
 			opponent = self.teams[self.getOpponent(row, stats).split(' ')[-1]].id
 			pointsFor = self.getPointsFor(row, stats)
 			pointsAgainst = self.getPointsAgainst(row, stats)
@@ -95,8 +118,9 @@ class Scraper:
 			defPassYards = self.getDefPassYards(row, stats)
 			defRushYards = self.getDefRushYards(row, stats)
 			defTurnovers = self.getDefTurnovers(row, stats)
+			awayGame = self.isAwayGame(row, stats)
 
-			game = Game(row, opponent, pointsFor, pointsAgainst, totalYards, passYards, rushYards, turnovers, defYdsAllowed, defPassYards, defRushYards, defTurnovers)
+			game = Game(row, opponent, opponentName, pointsFor, pointsAgainst, totalYards, passYards, rushYards, turnovers, defYdsAllowed, defPassYards, defRushYards, defTurnovers, awayGame)
 			schedule.append(game)
 
 			row += 1
