@@ -75,7 +75,10 @@ class Scraper:
 		return stats.at[row, ('Offense', 'RushY')]
 
 	def getTurnovers(self, row, stats):
-		return stats.at[row, ('Offense', 'TO')]
+		to = stats.at[row, ('Offense', 'TO')]
+		if pd.isna(to):
+			to = 0
+		return to 
 	
 	def getDefYardsAllowed(self, row, stats):
 		return stats.at[row, ('Defense', 'TotYd')]
@@ -87,7 +90,10 @@ class Scraper:
 		return stats.at[row, ('Defense', 'RushY')]
 	
 	def getDefTurnovers(self, row, stats):
-		return stats.at[row, ('Defense', 'TO')]
+		to = stats.at[row, ('Defense', 'TO')]
+		if pd.isna(to):
+			to = 0
+		return to
 
 	def isByeWeek(self, row, stats):
 		return stats.at[row, ('Unnamed: 9_level_0', 'Opp')] == 'Bye Week'

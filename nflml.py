@@ -1,7 +1,9 @@
 from Scraper import Scraper
 from Scraper import Team
 from Preprocess import Preprocessor
-from Model import Model
+from XGBModel import XGBModel
+from RandomForest import RandomForest
+from NeuralNet import NeuralNet
 import pickle
 from os.path import exists
 
@@ -21,21 +23,35 @@ else:
 	pkl2 = open('teams2.pickle', 'rb')
 	teams = pickle.load(pkl)
 	Team.idToTeam = pickle.load(pkl2)
-weekToPredict = 12
+weekToPredict = 11
 weeksToLookback = 4
 scoreDifferential = 0
 
 preproc = Preprocessor()
-train_X, train_Y = preproc.generateDataAndLabels(teams, weekToPredict, weeksToLookback, scoreDifferential)
+weekToStart = 6
+weekToEnd = 12
+numTotal = 0
+numCorrect = 0
+for i in range(weekToStart, weekToEnd):
+	train_X, train_Y = preproc.generateDataAndLabels(teams, i, weeksToLookback, scoreDifferential)
+	test_X, test_Y = preproc.generateTrainingDataForWeek(teams, i, weeksToLookback, scoreDifferential)
+	print(train_X.shape)
+	print(train_Y.shape)
+	
+	model = NeuralNet(train_X.shape[1])
+	model.double()
+	#model = RandomForest()
+	#model = XGBModel()
+	model.trainModel(train_X, train_Y)
+	nC, nT = model.backtestModel(test_X, test_Y)
+	#nC, nT = model.backtestModel(train_X, train_Y)
+	numCorrect += nC
+	numTotal += nT 
+
+	print('Week ' + str(i) + ' Accuracy: ' + str(nC/nT))
+print('Overall Accuracy: ' + str(numCorrect/numTotal))
 
 
 
-print(train_X.shape)
-print(train_Y.shape)
 
 
-
-model = Model()
-model.trainModel(train_X, train_Y)
-test_X = preproc.generateInput(teams['Bengals'], weekToPredict, weeksToLookback)
-print(model.predict(test_X))

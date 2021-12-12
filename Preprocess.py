@@ -1,10 +1,9 @@
 import numpy as np
 
-
 class Preprocessor:
-
+	
 	def generateDataAndLabels(self, teams, curWeek, weeksPerLabel, scoreDifferential):
-		week = 0 + weeksPerLabel
+		week = curWeek-1
 		data = []
 		labels = []
 		while week < curWeek:
@@ -28,55 +27,67 @@ class Preprocessor:
 		for _,team in teams.items():
 			if team.schedule[week].opponentName == 'Week': 
 				continue
-			d, l = self.generateInputAndLabel(team, week, weeksPerLabel, scoreDifferential)
+			d, l = self.generateInputAndLabel(teams, team, week, weeksPerLabel, scoreDifferential)
 			data.append(d)
 			labels.append(l)
 		X = np.asarray(data)
 		Y = np.asarray(labels)
 		return X, Y
 
-	def generateInput(self, team, week, weeksPerLabel):
+	def generateGameFeatureVec(self, game):
+		featureVec = np.empty([7])
+		featureVec[0] = game.pointsFor
+		featureVec[1] = game.pointsAgainst
+		featureVec[2] = game.totalYards
+		featureVec[3] = game.turnovers
+		featureVec[4] = game.defYdsAllowed
+		featureVec[5] = game.defTurnovers
+		featureVec[6] = game.awayGame
+
+		return featureVec
+
+
+	def generateInput(self, teams, team, week, weeksPerLabel):
 		features = []
-		for i in range(week - weeksPerLabel, week):
-			teamVec = np.zeros([32])
-			oppVec = np.zeros([32])
-			teamVec[team.id] = 1
+		for idx in range(week - weeksPerLabel, week):
+			game = team.schedule[idx]
+
+			i = idx
+			if game.opponentName == 'Week':
+				i = idx - 1 if idx == week - 1 else idx + 1
 			game = team.schedule[i]
 			
-			if game.opponentName == 'Week':
-				game = team.schedule[i - 1] if i == week - 1 else team.schedule[i + 1]
-
-
-			oppVec[game.opponent] = 1
-
-			featureVec = np.empty([11])
-			featureVec[0] = game.pointsFor
-			featureVec[1] = game.pointsAgainst
-			featureVec[2] = game.totalYards
-			featureVec[3] = game.passYards
-			featureVec[4] = game.rushYards
-			featureVec[5] = game.turnovers
-			featureVec[6] = game.defYdsAllowed
-			featureVec[7] = game.defPassYards
-			featureVec[8] = game.defRushYards
-			featureVec[9] = game.defTurnovers
-			featureVec[10] = game.awayGame
-
-			feature = np.concatenate((teamVec, oppVec, featureVec), axis=0)
+			featureVec = self.generateGameFeatureVec(game)
+			opponent = team.schedule[i].opponentName
+			opponentTeam = teams[opponent]
+			oppGame = opponentTeam.schedule[i]
+			oppFeatureVec = self.generateGameFeatureVec(oppGame)
+			feature = np.concatenate((featureVec, oppFeatureVec), axis=0)
 			features.append(feature)
 
 		game = team.schedule[week]
 		X = np.reshape(np.asarray(features), (-1))
 		
-		featureVec = np.empty([2])
-		featureVec[0] = team.id
-		featureVec[1] = game.opponent
+		featureVec = np.empty([1])
+		featureVec[0] = game.awayGame
 
 		X = np.append(X, featureVec, axis=0)
 		return X
+	
+	def generateTestInput(self, teams, week, weeksPerLabel):
+		data = []
+		for _,team in teams.items():
+			if team.schedule[week].opponentName == 'Week': 
+				continue
+			d = self.generateInput(team, week, weeksPerLabel)
+			data.append(d)
+		X = np.asarray(data)
+		return X
 
-	def generateInputAndLabel(self, team, week, weeksPerLabel, scoreDifferential):
+		
+
+	def generateInputAndLabel(self, teams, team, week, weeksPerLabel, scoreDifferential):
 		game = team.schedule[week]
-		X = self.generateInput(team, week, weeksPerLabel)
+		X = self.generateInput(teams, team, week, weeksPerLabel)
 		Y = game.pointsFor + scoreDifferential > game.pointsAgainst
 		return X, Y
